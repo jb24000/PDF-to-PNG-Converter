@@ -13,12 +13,11 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="description" content="Convert PDF files to high-quality PNG images. Works offline with desktop app features.">
     
-    <!-- PWA Icons -->
-    <link rel="icon" type="image/png" sizes="32x32" href="./icon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="./icon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
+    <!-- PWA Icons - FIXED to match generated icons -->
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
+    <link rel="icon" href="./icon-192x192.png">
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="./manifest.json">
@@ -334,6 +333,22 @@
                 margin: 10px 5px;
             }
         }
+
+        /* Installation success indicator */
+        .pwa-installed {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+            color: #2e7d32;
+            font-weight: 600;
+            display: none;
+        }
+
+        .pwa-installed.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -344,6 +359,10 @@
     <div class="container">
         <h1>📄➡️🖼️ PDF to PNG Converter</h1>
         <div class="subtitle">Desktop Application - Works Offline</div>
+        
+        <div class="pwa-installed" id="pwaInstalled">
+            ✅ App installed successfully! You can now use it offline.
+        </div>
         
         <button class="install-prompt" id="installPrompt">
             📱 Install App - Get the full desktop experience!
@@ -388,9 +407,11 @@
         let deferredPrompt;
         const installPrompt = document.getElementById('installPrompt');
         const offlineIndicator = document.getElementById('offlineIndicator');
+        const pwaInstalled = document.getElementById('pwaInstalled');
 
         // PWA install prompt
         window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('PWA install prompt available');
             e.preventDefault();
             deferredPrompt = e;
             installPrompt.classList.add('show');
@@ -398,22 +419,68 @@
 
         installPrompt.addEventListener('click', async () => {
             if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    installPrompt.style.display = 'none';
+                try {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log('Install outcome:', outcome);
+                    
+                    if (outcome === 'accepted') {
+                        installPrompt.style.display = 'none';
+                        pwaInstalled.classList.add('show');
+                        setTimeout(() => {
+                            pwaInstalled.classList.remove('show');
+                        }, 5000);
+                    }
+                    deferredPrompt = null;
+                } catch (error) {
+                    console.error('Install prompt error:', error);
+                    // Show manual install instructions
+                    showManualInstallInstructions();
                 }
-                deferredPrompt = null;
+            } else {
+                showManualInstallInstructions();
             }
         });
 
+        function showManualInstallInstructions() {
+            const isChrome = navigator.userAgent.includes('Chrome');
+            const isEdge = navigator.userAgent.includes('Edg');
+            const isSafari = navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome');
+            
+            let instructions = 'To install this app:\n\n';
+            
+            if (isChrome) {
+                instructions += '1. Look for the install icon (⊕) in the address bar\n' +
+                              '2. Or go to Chrome Menu → More Tools → Create Shortcut\n' +
+                              '3. Check "Open as window" for the best experience';
+            } else if (isEdge) {
+                instructions += '1. Look for the install icon (⊕) in the address bar\n' +
+                              '2. Or go to Edge Menu → Apps → Install this site as an app';
+            } else if (isSafari) {
+                instructions += '1. Safari → Share button → Add to Home Screen\n' +
+                              '2. On iOS: Share → Add to Home Screen';
+            } else {
+                instructions += '1. Look for install option in browser menu\n' +
+                              '2. Check address bar for install icon\n' +
+                              '3. Try browser settings → Install app';
+            }
+            
+            alert(instructions);
+        }
+
         // Hide install button if already installed
         window.addEventListener('appinstalled', () => {
+            console.log('PWA was installed');
             installPrompt.style.display = 'none';
+            pwaInstalled.classList.add('show');
+            setTimeout(() => {
+                pwaInstalled.classList.remove('show');
+            }, 5000);
         });
 
         // Check if already installed
         if (window.matchMedia('(display-mode: standalone)').matches) {
+            console.log('PWA is running in standalone mode');
             installPrompt.style.display = 'none';
         }
 
@@ -657,256 +724,12 @@
             window.addEventListener('load', async () => {
                 try {
                     const registration = await navigator.serviceWorker.register('./sw.js');
-                    console.log('SW registered: ', registration);
+                    console.log('Service Worker registered successfully:', registration);
                 } catch (error) {
-                    console.log('SW registration failed: ', error);
+                    console.log('Service Worker registration failed:', error);
                 }
             });
         }
     </script>
 </body>
 </html>
-
-<!-- Additional Files Needed: -->
-
-<!-- MANIFEST.JSON -->
-<script id="manifest-json" type="application/json">
-{
-  "name": "PDF to PNG Converter",
-  "short_name": "PDF Converter",
-  "description": "Convert PDF files to high-quality PNG images. Works offline with desktop app features.",
-  "start_url": "./",
-  "display": "standalone",
-  "background_color": "#667eea",
-  "theme_color": "#667eea",
-  "orientation": "portrait-primary",
-  "categories": ["productivity", "utilities", "developer"],
-  "lang": "en-US",
-  "dir": "ltr",
-  "prefer_related_applications": false,
-  "scope": "./",
-  "id": "./",
-  
-  "icons": [
-    {
-      "src": "./icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./icon-192x192-maskable.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
-  ],
-  
-  "shortcuts": [
-    {
-      "name": "Convert PDF",
-      "short_name": "Convert",
-      "description": "Convert a PDF file to PNG images",
-      "url": "./?action=convert",
-      "icons": [
-        {
-          "src": "./icon-192x192.png",
-          "sizes": "192x192",
-          "type": "image/png"
-        }
-      ]
-    }
-  ],
-  
-  "screenshots": [
-    {
-      "src": "./screenshot-wide.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide"
-    },
-    {
-      "src": "./screenshot-narrow.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow"
-    }
-  ]
-}
-</script>
-
-<!-- SERVICE WORKER (SW.JS) -->
-<script id="service-worker" type="text/javascript">
-const CACHE_NAME = 'pdf-converter-v1';
-const urlsToCache = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-192x192.png',
-  './icon-512x512.png',
-  './icon-192x192-maskable.png',
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
-];
-
-// Install event - cache resources
-self.addEventListener('install', (event) => {
-  console.log('Service Worker installing...');
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
-      .then(() => {
-        console.log('All resources cached');
-        self.skipWaiting();
-      })
-      .catch((error) => {
-        console.error('Cache add failed:', error);
-      })
-  );
-});
-
-// Fetch event - serve from cache when offline
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        if (response) {
-          return response;
-        }
-        
-        return fetch(event.request).catch((error) => {
-          console.error('Fetch failed for:', event.request.url, error);
-          
-          // For navigation requests, return the main page
-          if (event.request.mode === 'navigate') {
-            return caches.match('./index.html');
-          }
-          
-          throw error;
-        });
-      })
-  );
-});
-
-// Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating...');
-  event.waitUntil(
-    Promise.all([
-      // Clean up old caches
-      caches.keys().then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== CACHE_NAME) {
-              console.log('Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      }),
-      // Take control of all clients immediately
-      self.clients.claim()
-    ])
-  );
-});
-
-// Message handling
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
-</script>
-
-<!-- ICON GENERATOR -->
-<script>
-// Generate app icons using canvas
-function generateIcons() {
-  const sizes = [16, 32, 192, 512];
-  
-  sizes.forEach(size => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = size;
-    canvas.height = size;
-    
-    // Create gradient background
-    const gradient = ctx.createLinearGradient(0, 0, size, size);
-    gradient.addColorStop(0, '#667eea');
-    gradient.addColorStop(1, '#764ba2');
-    
-    // Background
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, size, size);
-    
-    // PDF icon shape
-    ctx.fillStyle = 'white';
-    const padding = size * 0.15;
-    const iconSize = size - (padding * 2);
-    
-    // Document shape
-    ctx.fillRect(padding, padding, iconSize * 0.7, iconSize);
-    
-    // Folded corner
-    ctx.fillStyle = '#f0f0f0';
-    const cornerSize = iconSize * 0.2;
-    ctx.fillRect(padding + iconSize * 0.7 - cornerSize, padding, cornerSize, cornerSize);
-    
-    // Arrow (PDF to PNG)
-    ctx.fillStyle = 'white';
-    const arrowY = padding + iconSize * 0.7;
-    const arrowX = padding + iconSize * 0.8;
-    ctx.beginPath();
-    ctx.moveTo(arrowX, arrowY);
-    ctx.lineTo(arrowX + iconSize * 0.15, arrowY - iconSize * 0.1);
-    ctx.lineTo(arrowX + iconSize * 0.15, arrowY + iconSize * 0.1);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Download the icon
-    const link = document.createElement('a');
-    link.download = `icon-${size}x${size}.png`;
-    link.href = canvas.toDataURL();
-    link.click();
-  });
-  
-  // Create maskable icon (with safe zone)
-  const maskableCanvas = document.createElement('canvas');
-  const maskableCtx = maskableCanvas.getContext('2d');
-  maskableCanvas.width = 192;
-  maskableCanvas.height = 192;
-  
-  // Maskable background (larger, safe zone)
-  const maskableGradient = maskableCtx.createLinearGradient(0, 0, 192, 192);
-  maskableGradient.addColorStop(0, '#667eea');
-  maskableGradient.addColorStop(1, '#764ba2');
-  
-  maskableCtx.fillStyle = maskableGradient;
-  maskableCtx.fillRect(0, 0, 192, 192);
-  
-  // Centered icon (smaller to fit safe zone)
-  maskableCtx.fillStyle = 'white';
-  const centerPadding = 48; // Safe zone padding
-  const centerIconSize = 96;
-  
-  maskableCtx.fillRect(centerPadding, centerPadding, centerIconSize * 0.7, centerIconSize);
-  
-  const maskableLink = document.createElement('a');
-  maskableLink.download = 'icon-192x192-maskable.png';
-  maskableLink.href = maskableCanvas.toDataURL();
-  maskableLink.click();
-}
-
-// Uncomment to generate icons
-// generateIcons();
-</script>
