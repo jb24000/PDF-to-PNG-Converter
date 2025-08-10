@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF to PNG Converter - Desktop App</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PDF Converter">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="description" content="Convert PDF files to high-quality PNG images. Works offline with desktop app features.">
+    
+    <!-- PWA Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="./icon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./icon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 900px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1rem;
+        }
+
+        /* PWA Install Button */
+        .install-prompt {
+            background: linear-gradient(45deg, #4ade80, #22c55e);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 14px;
+            display: none;
+            animation: pulse 2s infinite;
+        }
+
+        .install-prompt.show {
+            display: block;
+        }
+
+        .install-prompt:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(74, 222, 128, 0.3);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 60px 20px;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: rgba(118, 75, 162, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: rgba(118, 75, 162, 0.15);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            transform: none;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .progress-container {
+            background: #f0f0f0;
+            border-radius: 25px;
+            padding: 5px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .progress-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 25px;
+            border-radius: 20px;
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .page-preview {
+            display: inline-block;
+            margin: 15px;
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            vertical-align: top;
+        }
+
+        .page-preview:hover {
+            transform: translateY(-5px);
+        }
+
+        .page-preview canvas {
+            max-width: 200px;
+            border-radius: 5px;
+            border: 1px solid #eee;
+        }
+
+        .page-info {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .download-btn {
+            background: #28a745;
+            font-size: 0.9rem;
+            padding: 8px 16px;
+            margin-top: 10px;
+        }
+
+        .download-btn:hover {
+            box-shadow: 0 5px 10px rgba(40, 167, 69, 0.3);
+        }
+
+        .status {
+            margin: 20px 0;
+            font-weight: 600;
+            min-height: 20px;
+        }
+
+        .error {
+            color: #dc3545;
+        }
+
+        .success {
+            color: #28a745;
+        }
+
+        .processing {
+            color: #667eea;
+        }
+
+        .download-all-container {
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(40, 167, 69, 0.1);
+            border-radius: 10px;
+            border: 2px solid #28a745;
+        }
+
+        .quality-selector {
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .quality-selector label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .quality-selector select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .processing-animation {
+            animation: pulse-upload 2s infinite;
+        }
+
+        @keyframes pulse-upload {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .offline-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ff6b6b;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            display: none;
+            z-index: 1000;
+        }
+
+        .offline-indicator.online {
+            background: #51cf66;
+        }
+
+        /* PWA specific styles */
+        @media (display-mode: standalone) {
+            body {
+                padding-top: env(safe-area-inset-top);
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+            
+            .subtitle::after {
+                content: " • Installed App";
+                color: #28a745;
+                font-weight: 600;
+            }
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .upload-area {
+                padding: 40px 20px;
+            }
+            
+            .page-preview {
+                margin: 10px 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-indicator" id="offlineIndicator">
+        📡 Offline Mode - App still works!
+    </div>
+
+    <div class="container">
+        <h1>📄➡️🖼️ PDF to PNG Converter</h1>
+        <div class="subtitle">Desktop Application - Works Offline</div>
+        
+        <button class="install-prompt" id="installPrompt">
+            📱 Install App - Get the full desktop experience!
+        </button>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">Drop your PDF file here or click to browse</div>
+            <div class="upload-subtext">Supports PDF files • High quality PNG output</div>
+        </div>
+
+        <input type="file" id="fileInput" accept=".pdf" />
+        
+        <div class="quality-selector">
+            <label for="qualitySelect">Output Quality:</label>
+            <select id="qualitySelect">
+                <option value="1">Standard Quality (1x)</option>
+                <option value="2" selected>High Quality (2x)</option>
+                <option value="3">Ultra Quality (3x)</option>
+            </select>
+        </div>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar">0%</div>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="results" id="results">
+            <h3>Converted Pages:</h3>
+            <div id="pageContainer"></div>
+            <div class="download-all-container">
+                <h4>📦 Batch Download</h4>
+                <p>Click below to download all pages as PNG files</p>
+                <button class="btn" id="downloadAllBtn">Download All PNG Files</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // PWA functionality
+        let deferredPrompt;
+        const installPrompt = document.getElementById('installPrompt');
+        const offlineIndicator = document.getElementById('offlineIndicator');
+
+        // PWA install prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installPrompt.classList.add('show');
+        });
+
+        installPrompt.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    installPrompt.style.display = 'none';
+                }
+                deferredPrompt = null;
+            }
+        });
+
+        // Hide install button if already installed
+        window.addEventListener('appinstalled', () => {
+            installPrompt.style.display = 'none';
+        });
+
+        // Check if already installed
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            installPrompt.style.display = 'none';
+        }
+
+        // Online/offline indicators
+        function updateOnlineStatus() {
+            if (navigator.onLine) {
+                offlineIndicator.textContent = '🌐 Online - Full features available';
+                offlineIndicator.classList.add('online');
+                offlineIndicator.style.display = 'block';
+                setTimeout(() => {
+                    offlineIndicator.style.display = 'none';
+                }, 3000);
+            } else {
+                offlineIndicator.textContent = '📡 Offline Mode - App still works!';
+                offlineIndicator.classList.remove('online');
+                offlineIndicator.style.display = 'block';
+            }
+        }
+
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+
+        // Set up PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const qualitySelect = document.getElementById('qualitySelect');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const status = document.getElementById('status');
+        const results = document.getElementById('results');
+        const pageContainer = document.getElementById('pageContainer');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+
+        let convertedPages = [];
+        let currentFileName = '';
+
+        // Upload area click handler
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // Drag and drop handlers
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        // File input handler
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (file.type !== 'application/pdf') {
+                showStatus('❌ Please select a PDF file.', 'error');
+                return;
+            }
+
+            currentFileName = file.name.replace('.pdf', '');
+            convertPdfToPng(file);
+        }
+
+        async function convertPdfToPng(file) {
+            try {
+                showStatus('📖 Loading PDF...', 'processing');
+                uploadArea.classList.add('processing-animation');
+                progressContainer.style.display = 'block';
+                results.style.display = 'none';
+                convertedPages = [];
+                pageContainer.innerHTML = '';
+
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                
+                const scale = parseFloat(qualitySelect.value);
+                showStatus(`🔄 Converting ${pdf.numPages} pages at ${scale}x quality...`, 'processing');
+                
+                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                    const page = await pdf.getPage(pageNum);
+                    const { canvas, blob } = await renderPageToPng(page, scale);
+                    
+                    // Create page preview
+                    createPagePreview(canvas, pageNum, blob);
+                    convertedPages.push({ pageNum, blob, canvas });
+                    
+                    // Update progress
+                    const progress = (pageNum / pdf.numPages) * 100;
+                    updateProgress(progress);
+                }
+
+                showStatus(`✅ Successfully converted ${pdf.numPages} pages to PNG!`, 'success');
+                results.style.display = 'block';
+                progressContainer.style.display = 'none';
+                uploadArea.classList.remove('processing-animation');
+
+            } catch (error) {
+                console.error('Conversion error:', error);
+                showStatus('❌ Error converting PDF. Please try again.', 'error');
+                progressContainer.style.display = 'none';
+                uploadArea.classList.remove('processing-animation');
+            }
+        }
+
+        async function renderPageToPng(page, scale) {
+            const viewport = page.getViewport({ scale });
+            
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            // Render page to canvas
+            await page.render({
+                canvasContext: context,
+                viewport: viewport
+            }).promise;
+
+            // Convert canvas to blob with high quality
+            const blob = await new Promise(resolve => {
+                canvas.toBlob(resolve, 'image/png', 1.0);
+            });
+
+            return { canvas, blob };
+        }
+
+        function createPagePreview(canvas, pageNum, blob) {
+            const previewDiv = document.createElement('div');
+            previewDiv.className = 'page-preview';
+
+            // Create preview canvas (smaller for display)
+            const previewCanvas = document.createElement('canvas');
+            const ctx = previewCanvas.getContext('2d');
+            const maxWidth = 200;
+            const scale = maxWidth / canvas.width;
+            previewCanvas.width = canvas.width * scale;
+            previewCanvas.height = canvas.height * scale;
+            
+            ctx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
+            
+            const pageInfo = document.createElement('div');
+            pageInfo.className = 'page-info';
+            pageInfo.innerHTML = `
+                <strong>Page ${pageNum}</strong><br>
+                ${Math.round(canvas.width)} × ${Math.round(canvas.height)} px<br>
+                ${(blob.size / 1024).toFixed(1)} KB
+            `;
+
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'btn download-btn';
+            downloadBtn.textContent = '⬇️ Download PNG';
+            downloadBtn.onclick = () => {
+                const filename = `${currentFileName}_page_${String(pageNum).padStart(2, '0')}.png`;
+                triggerDownload(blob, filename);
+            };
+
+            previewDiv.appendChild(previewCanvas);
+            previewDiv.appendChild(pageInfo);
+            previewDiv.appendChild(downloadBtn);
+            pageContainer.appendChild(previewDiv);
+        }
+
+        function triggerDownload(blob, filename) {
+            // Create object URL
+            const url = URL.createObjectURL(blob);
+            
+            // Create download link
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            
+            // Append to body (required for Firefox)
+            document.body.appendChild(link);
+            
+            // Programmatically click the link
+            link.click();
+            
+            // Clean up
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // Download all files
+        downloadAllBtn.addEventListener('click', () => {
+            if (convertedPages.length === 0) {
+                showStatus('❌ No pages to download', 'error');
+                return;
+            }
+            
+            showStatus(`📥 Downloading ${convertedPages.length} PNG files...`, 'processing');
+            downloadAllBtn.disabled = true;
+            
+            // Download each file with a small delay
+            convertedPages.forEach((page, index) => {
+                setTimeout(() => {
+                    const filename = `${currentFileName}_page_${String(page.pageNum).padStart(2, '0')}.png`;
+                    triggerDownload(page.blob, filename);
+                    
+                    // Re-enable button after last download
+                    if (index === convertedPages.length - 1) {
+                        setTimeout(() => {
+                            showStatus(`✅ Downloaded ${convertedPages.length} PNG files!`, 'success');
+                            downloadAllBtn.disabled = false;
+                        }, 1000);
+                    }
+                }, index * 300); // 300ms delay between downloads
+            });
+        });
+
+        function updateProgress(percent) {
+            progressBar.style.width = percent + '%';
+            progressBar.textContent = Math.round(percent) + '%';
+        }
+
+        function showStatus(message, type = 'processing') {
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+
+        // Show app info on load
+        showStatus('💡 Ready to convert PDF files to PNG images!', 'success');
+
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('./sw.js');
+                    console.log('SW registered: ', registration);
+                } catch (error) {
+                    console.log('SW registration failed: ', error);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+
+<!-- Additional Files Needed: -->
+
+<!-- MANIFEST.JSON -->
+<script id="manifest-json" type="application/json">
+{
+  "name": "PDF to PNG Converter",
+  "short_name": "PDF Converter",
+  "description": "Convert PDF files to high-quality PNG images. Works offline with desktop app features.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#667eea",
+  "theme_color": "#667eea",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "utilities", "developer"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "scope": "./",
+  "id": "./",
+  
+  "icons": [
+    {
+      "src": "./icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-192x192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  
+  "shortcuts": [
+    {
+      "name": "Convert PDF",
+      "short_name": "Convert",
+      "description": "Convert a PDF file to PNG images",
+      "url": "./?action=convert",
+      "icons": [
+        {
+          "src": "./icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  
+  "screenshots": [
+    {
+      "src": "./screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "./screenshot-narrow.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ]
+}
+</script>
+
+<!-- SERVICE WORKER (SW.JS) -->
+<script id="service-worker" type="text/javascript">
+const CACHE_NAME = 'pdf-converter-v1';
+const urlsToCache = [
+  './',
+  './index.html',
+  './manifest.json',
+  './icon-192x192.png',
+  './icon-512x512.png',
+  './icon-192x192-maskable.png',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+];
+
+// Install event - cache resources
+self.addEventListener('install', (event) => {
+  console.log('Service Worker installing...');
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('Opened cache');
+        return cache.addAll(urlsToCache);
+      })
+      .then(() => {
+        console.log('All resources cached');
+        self.skipWaiting();
+      })
+      .catch((error) => {
+        console.error('Cache add failed:', error);
+      })
+  );
+});
+
+// Fetch event - serve from cache when offline
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => {
+        // Return cached version or fetch from network
+        if (response) {
+          return response;
+        }
+        
+        return fetch(event.request).catch((error) => {
+          console.error('Fetch failed for:', event.request.url, error);
+          
+          // For navigation requests, return the main page
+          if (event.request.mode === 'navigate') {
+            return caches.match('./index.html');
+          }
+          
+          throw error;
+        });
+      })
+  );
+});
+
+// Activate event - clean up old caches
+self.addEventListener('activate', (event) => {
+  console.log('Service Worker activating...');
+  event.waitUntil(
+    Promise.all([
+      // Clean up old caches
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              console.log('Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      }),
+      // Take control of all clients immediately
+      self.clients.claim()
+    ])
+  );
+});
+
+// Message handling
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+</script>
+
+<!-- ICON GENERATOR -->
+<script>
+// Generate app icons using canvas
+function generateIcons() {
+  const sizes = [16, 32, 192, 512];
+  
+  sizes.forEach(size => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = size;
+    canvas.height = size;
+    
+    // Create gradient background
+    const gradient = ctx.createLinearGradient(0, 0, size, size);
+    gradient.addColorStop(0, '#667eea');
+    gradient.addColorStop(1, '#764ba2');
+    
+    // Background
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, size, size);
+    
+    // PDF icon shape
+    ctx.fillStyle = 'white';
+    const padding = size * 0.15;
+    const iconSize = size - (padding * 2);
+    
+    // Document shape
+    ctx.fillRect(padding, padding, iconSize * 0.7, iconSize);
+    
+    // Folded corner
+    ctx.fillStyle = '#f0f0f0';
+    const cornerSize = iconSize * 0.2;
+    ctx.fillRect(padding + iconSize * 0.7 - cornerSize, padding, cornerSize, cornerSize);
+    
+    // Arrow (PDF to PNG)
+    ctx.fillStyle = 'white';
+    const arrowY = padding + iconSize * 0.7;
+    const arrowX = padding + iconSize * 0.8;
+    ctx.beginPath();
+    ctx.moveTo(arrowX, arrowY);
+    ctx.lineTo(arrowX + iconSize * 0.15, arrowY - iconSize * 0.1);
+    ctx.lineTo(arrowX + iconSize * 0.15, arrowY + iconSize * 0.1);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Download the icon
+    const link = document.createElement('a');
+    link.download = `icon-${size}x${size}.png`;
+    link.href = canvas.toDataURL();
+    link.click();
+  });
+  
+  // Create maskable icon (with safe zone)
+  const maskableCanvas = document.createElement('canvas');
+  const maskableCtx = maskableCanvas.getContext('2d');
+  maskableCanvas.width = 192;
+  maskableCanvas.height = 192;
+  
+  // Maskable background (larger, safe zone)
+  const maskableGradient = maskableCtx.createLinearGradient(0, 0, 192, 192);
+  maskableGradient.addColorStop(0, '#667eea');
+  maskableGradient.addColorStop(1, '#764ba2');
+  
+  maskableCtx.fillStyle = maskableGradient;
+  maskableCtx.fillRect(0, 0, 192, 192);
+  
+  // Centered icon (smaller to fit safe zone)
+  maskableCtx.fillStyle = 'white';
+  const centerPadding = 48; // Safe zone padding
+  const centerIconSize = 96;
+  
+  maskableCtx.fillRect(centerPadding, centerPadding, centerIconSize * 0.7, centerIconSize);
+  
+  const maskableLink = document.createElement('a');
+  maskableLink.download = 'icon-192x192-maskable.png';
+  maskableLink.href = maskableCanvas.toDataURL();
+  maskableLink.click();
+}
+
+// Uncomment to generate icons
+// generateIcons();
+</script>
