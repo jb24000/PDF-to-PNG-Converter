@@ -13,7 +13,6 @@
   "prefer_related_applications": false,
   "scope": "./",
   "id": "./",
-  
   "icons": [
     {
       "src": "./icon-192x192.png",
@@ -34,7 +33,6 @@
       "purpose": "maskable"
     }
   ],
-  
   "shortcuts": [
     {
       "name": "Convert PDF",
