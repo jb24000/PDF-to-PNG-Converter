@@ -1,0 +1,36 @@
+
+                <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="grad512" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#667eea"/>
+                            <stop offset="100%" style="stop-color:#764ba2"/>
+                        </linearGradient>
+                    </defs>
+                    <rect width="512" height="512" rx="51.2" fill="url(#grad512)"/>
+                    <g transform="translate(76.8, 102.4)">
+                        <!-- PDF Document -->
+                        <rect x="0" y="0" width="128" height="179.2" rx="10.24" fill="white"/>
+                        <polygon points="102.4,0 128,25.6 128,0" fill="#f0f0f0"/>
+                        
+                        <!-- Document lines -->
+                        <rect x="10.24" y="40.96" width="92.16" height="7.68" rx="2.56" fill="#667eea"/>
+                        <rect x="10.24" y="61.44" width="92.16" height="7.68" rx="2.56" fill="#667eea"/>
+                        <rect x="10.24" y="81.92" width="61.44" height="7.68" rx="2.56" fill="#667eea"/>
+                        
+                        <!-- Arrow -->
+                        <rect x="163.84" y="81.92" width="51.2" height="12.8" rx="5.12" fill="white"/>
+                        <polygon points="215.04,66.56 245.76,89.6 215.04,112.64" fill="white"/>
+                        
+                        <!-- PNG Image -->
+                        <rect x="281.6" y="25.6" width="128" height="128" rx="10.24" fill="white"/>
+                        <rect x="291.84" y="35.84" width="107.52" height="107.52" rx="5.12" fill="#4ade80"/>
+                        
+                        <!-- Mountain shape in image -->
+                        <polygon points="307.2,112.64 327.68,76.8 348.16,92.16 368.64,61.44 389.12,112.64" fill="white"/>
+                        <circle cx="317.44" cy="66.56" r="7.68" fill="white"/>
+                        
+                        <!-- PNG text -->
+                        <text x="345.6" y="179.2" font-family="Arial, sans-serif" font-size="30.72" font-weight="bold" text-anchor="middle" fill="#667eea">PNG</text>
+                    </g>
+                </svg>
+            
